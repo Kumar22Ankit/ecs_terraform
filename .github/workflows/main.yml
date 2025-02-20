@@ -1,0 +1,168 @@
+# .github/workflows/terraform.yml
+
+name: Terraform Plan and Apply with Approval
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tasks/ecs/**'
+      - 'terraform/modules/ecs/**'
+      - 'tasks/ecs_update/**'
+      - 'terraform/modules/ecs_update/**'
+
+jobs:
+  determine_pipeline:
+    runs-on: ubuntu-latest
+    outputs:
+      pipeline: ${{ steps.set-pipeline.outputs.pipeline }}
+    steps:
+      - name: Check changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+        with:
+          files: |
+            tasks/ecs/**
+            terraform/modules/ecs/**
+            tasks/ecs_update/**
+            terraform/modules/ecs_update/**
+
+      - name: Set pipeline type
+        id: set-pipeline
+        run: |
+          if [[ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]]; then
+            if [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs/ ]]; then
+              echo "pipeline=ecs_deploy" >> $GITHUB_ENV
+            elif [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs_update/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs_update/ ]]; then
+              echo "pipeline=ecs_update" >> $GITHUB_ENV
+            fi
+          fi
+
+
+  terraform_ecs_plan:
+    needs: determine_pipeline
+    if: needs.determine_pipeline.outputs.pipeline == 'ecs_deploy'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: tasks/ecs/
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -no-color
+        working-directory: tasks/ecs/
+
+      - name: Upload tfplan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: tasks/ecs/tfplan/
+
+  ecs_deploy:
+    needs: determine_pipeline
+    if: needs.determine_pipeline.outputs.pipeline == 'ecs_deploy'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Download tfplan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: tasks/ecs/
+
+      - name: Terraform Apply
+        run: terraform apply --auto-approve tfplan
+        working-directory: tasks/ecs/
+
+  terraform_ecs_update_plan:
+    needs: determine_pipeline
+    if: needs.determine_pipeline.outputs.pipeline == 'ecs_update'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: tasks/ecs_update/
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -no-color
+        working-directory: tasks/ecs_update/
+
+      - name: Upload tfplan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: tasks/ecs_update/tfplan/
+
+  ecs_update:
+    needs: determine_pipeline
+    if: needs.determine_pipeline.outputs.pipeline == 'ecs_update'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Download tfplan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: tasks/ecs_update/
+
+      - name: Terraform Apply
+        run: |
+          terraform apply --auto-approve tfplan
+          echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
+          echo "SERVICE_NAME=$(terraform output -raw service_name)" >> $GITHUB_ENV
+          echo "TASK_DEFINITION=$(terraform output -raw task_definition)" >> $GITHUB_ENV
+        working-directory: tasks/ecs_update/
+
+      - name: Fetch Latest Task Definition
+        run: |
+          LATEST_TASK_DEF=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "LATEST_TASK_DEF=$LATEST_TASK_DEF" >> $GITHUB_ENV
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ env.LATEST_TASK_DEF }}
+          service: ${{ env.SERVICE_NAME }}
+          cluster: ${{ env.CLUSTER_NAME }}
+          wait-for-service-stability: true
