@@ -1,5 +1,4 @@
 provider "aws" {
-  profile = "vasant"
   region  = "ap-south-1"
 }
 
@@ -11,6 +10,5 @@ terraform {
     region         = "ap-south-1"
     dynamodb_table = "vasant_ecs"
     encrypt        = true
-    profile        = "vasant"
   }
 }
