@@ -155,6 +155,7 @@ jobs:
           echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
           echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
           echo "TASK_DEFINITION=$(terraform output -raw task_definition | grep -Eo 'task-definition/[^ ]+' | cut -d'/' -f2 | tr -d '\n' || echo "ERROR")" >> "$GITHUB_ENV"
+        continue-on-error: true
         working-directory: tasks/ecs_update/
 
       - name: Fetch Latest Task Definition
