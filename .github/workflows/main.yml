@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
-          path: tasks/ecs/tfplan/
+          path: tasks/ecs/
 
   ecs_deploy:
     needs: [determine_pipeline, terraform_ecs_plan]
@@ -130,7 +130,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
-          path: tasks/ecs_update/tfplan/
+          path: tasks/ecs_update/
 
   ecs_update:
     needs: [determine_pipeline, terraform_ecs_update_plan]
