@@ -71,12 +71,6 @@ jobs:
         run: terraform plan --var-file production.tfvars -out=tfplan -no-color
         working-directory: tasks/ecs/
 
-      - name: Upload tfplan
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: tasks/ecs/
-
   ecs_deploy:
     needs: [determine_pipeline, terraform_ecs_plan]
     if: needs.determine_pipeline.outputs.pipeline == 'ecs_deploy'
@@ -90,12 +84,6 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Download tfplan
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan
-          path: tasks/ecs/
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -104,7 +92,7 @@ jobs:
           aws-region: ap-south-1
 
       - name: Terraform Apply
-        run: terraform apply --auto-approve tfplan
+        run: terraform apply --var-file production.tfvars --auto-approve
         working-directory: tasks/ecs/
 
   terraform_ecs_update_plan:
@@ -132,12 +120,6 @@ jobs:
       - name: Terraform Plan
         run: terraform plan --var-file production.tfvars -out=tfplan -no-color
         working-directory: tasks/ecs_update/
-
-      - name: Upload tfplan
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: tasks/ecs_update/
 
   ecs_update:
     needs: [determine_pipeline, terraform_ecs_update_plan]
@@ -167,7 +149,7 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          terraform apply --auto-approve tfplan
+          terraform apply --var-file production.tfvars --auto-approve 
           echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> $GITHUB_ENV
           echo "SERVICE_NAME=$(terraform output -raw service_name)" >> $GITHUB_ENV
           echo "TASK_DEFINITION=$(terraform output -raw task_definition)" >> $GITHUB_ENV
