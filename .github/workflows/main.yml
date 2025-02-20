@@ -126,7 +126,7 @@ jobs:
   #       working-directory: tasks/ecs_update/
 
   ecs_update:
-    needs: [determine_pipeline, terraform_ecs_update_plan]
+    needs: [determine_pipeline]
     if: needs.determine_pipeline.outputs.pipeline == 'ecs_update'
     runs-on: ubuntu-latest
     environment:
