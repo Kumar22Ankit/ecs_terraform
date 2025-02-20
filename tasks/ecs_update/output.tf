@@ -9,3 +9,5 @@ output "service_name" {
 output "task_definition" {
   value = module.ecs_update.task_definition
 }
+
+// outputs
