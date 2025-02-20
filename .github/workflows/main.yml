@@ -68,7 +68,7 @@ jobs:
         working-directory: tasks/ecs/
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan -no-color
+        run: terraform plan --var-file production.tfvars -out=tfplan -no-color
         working-directory: tasks/ecs/
 
       - name: Upload tfplan
@@ -78,7 +78,7 @@ jobs:
           path: tasks/ecs/tfplan/
 
   ecs_deploy:
-    needs: determine_pipeline
+    needs: [determine_pipeline, terraform_ecs_plan]
     if: needs.determine_pipeline.outputs.pipeline == 'ecs_deploy'
     runs-on: ubuntu-latest
     environment:
@@ -123,7 +123,7 @@ jobs:
         working-directory: tasks/ecs_update/
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan -no-color
+        run: terraform plan --var-file production.tfvars -out=tfplan -no-color
         working-directory: tasks/ecs_update/
 
       - name: Upload tfplan
@@ -133,7 +133,7 @@ jobs:
           path: tasks/ecs_update/tfplan/
 
   ecs_update:
-    needs: determine_pipeline
+    needs: [determine_pipeline, terraform_ecs_update_plan]
     if: needs.determine_pipeline.outputs.pipeline == 'ecs_update'
     runs-on: ubuntu-latest
     environment:
