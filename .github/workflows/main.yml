@@ -37,8 +37,10 @@ jobs:
           if [[ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]]; then
             if [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs/ ]]; then
               echo "pipeline=ecs_deploy" >> $GITHUB_ENV
+              echo "::set-output name=pipeline::ecs_deploy"
             elif [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs_update/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs_update/ ]]; then
               echo "pipeline=ecs_update" >> $GITHUB_ENV
+              echo "::set-output name=pipeline::ecs_update"
             fi
           fi
 
