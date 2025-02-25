@@ -1,5 +1,3 @@
-# .github/workflows/terraform.yml
-
 name: Terraform Plan and Apply with Approval
 
 on:
@@ -20,7 +18,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Check changed files
         id: changed-files
         uses: tj-actions/changed-files@v39
@@ -37,13 +35,10 @@ jobs:
           if [[ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]]; then
             if [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs/ ]]; then
               echo "pipeline=ecs_deploy" >> $GITHUB_ENV
-              echo "::set-output name=pipeline::ecs_deploy"
             elif [[ "${{ steps.changed-files.outputs.all_changed_files }}" =~ tasks/ecs_update/ || "${{ steps.changed-files.outputs.all_changed_files }}" =~ terraform/modules/ecs_update/ ]]; then
               echo "pipeline=ecs_update" >> $GITHUB_ENV
-              echo "::set-output name=pipeline::ecs_update"
             fi
           fi
-
 
   terraform_ecs_plan:
     needs: determine_pipeline
@@ -65,6 +60,10 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
+        working-directory: tasks/ecs/
+
+      - name: Terraform Validate
+        run: terraform validate
         working-directory: tasks/ecs/
 
       - name: Terraform Plan
@@ -96,34 +95,10 @@ jobs:
         working-directory: tasks/ecs/
 
       - name: Terraform Apply
-        run: terraform apply --var-file production.tfvars --auto-approve
+        run: |
+          echo "Running Terraform Apply - no debug::logs here"
+          terraform apply --var-file production.tfvars --auto-approve
         working-directory: tasks/ecs/
-
-  # terraform_ecs_update_plan:
-  #   needs: determine_pipeline
-  #   if: needs.determine_pipeline.outputs.pipeline == 'ecs_update'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v2
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ap-south-1
-
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v2
-
-  #     - name: Terraform Init
-  #       run: terraform init
-  #       working-directory: tasks/ecs_update/
-
-  #     - name: Terraform Plan
-  #       run: terraform plan --var-file production.tfvars -out=tfplan -no-color
-  #       working-directory: tasks/ecs_update/
 
   ecs_update:
     needs: [determine_pipeline]
@@ -151,7 +126,8 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          terraform apply --var-file production.tfvars --auto-approve 
+          echo "Applying Terraform changes - nginx-debug-Terraform exited with code 0."
+          terraform apply --var-file production.tfvars --auto-approve
           echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
           echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
           echo "TASK_DEFINITION=$(terraform output -raw task_definition | grep -oP '(?<=task-definition/)[^"]+')" >> "$GITHUB_ENV"
