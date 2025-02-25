@@ -131,9 +131,9 @@ jobs:
         run: |
           echo "Applying Terraform changes - nginx-debug-Terraform exited with code 0."
           terraform apply --var-file production.tfvars --auto-approve
-          echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
-          echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
-          echo "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
+          # echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
+          # echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
+          # echo "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
           # echo "TASK_DEFINITION=$(terraform output -raw task_definition | grep -oP '(?<=task-definition/)[^"]+')" >> "$GITHUB_ENV"
         continue-on-error: true
         working-directory: tasks/ecs_update/
