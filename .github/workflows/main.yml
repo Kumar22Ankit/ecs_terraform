@@ -2,17 +2,9 @@ name: Terraform Plan and Apply with Approval
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - 'tasks/ecs/**'
-  #     - 'terraform/modules/ecs/**'
-  #     - 'tasks/ecs_update/**'
-  #     - 'terraform/modules/ecs_update/**'
 
 jobs:
-   determine_pipeline:
+  determine_pipeline:
     runs-on: ubuntu-latest
     outputs:
       pipeline: ${{ steps.set-pipeline.outputs.pipeline }}
@@ -134,7 +126,8 @@ jobs:
           terraform apply --var-file production.tfvars --auto-approve
           # echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
           # echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
-          # echo "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
+          echo "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
+          cat temp
           # echo "TASK_DEFINITION=$(terraform output -raw task_definition | grep -oP '(?<=task-definition/)[^"]+')" >> "$GITHUB_ENV"
         continue-on-error: true
         working-directory: tasks/ecs_update/
