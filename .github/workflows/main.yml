@@ -126,9 +126,11 @@ jobs:
           terraform apply --var-file production.tfvars --auto-approve
           # echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
           # echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
-          TASK_DEFINITION=$(terraform output -raw task_definition | sed 's|.*/||' | sed 's|::.*||')
-          ENCODED_VALUE=$(echo -n "$TASK_DEFINITION" | base64)
-          echo "TASK_DEFINITION=$ENCODED_VALUE" >> "$GITHUB_ENV"
+          # TASK_DEFINITION=$(terraform output -raw task_definition | sed 's|.*/||' | sed 's|::.*||')
+          # ENCODED_VALUE=$(echo -n "$TASK_DEFINITION" | base64)
+          TASK_DEFINITION=$(jq -r '.outputs.task_definition.value' terraform.tfstate | awk -F'/' '{print $NF}')
+          echo "TASK_DEFINITION=$TASK_DEFINITION" >> "$GITHUB_ENV"
+          # echo "TASK_DEFINITION=$ENCODED_VALUE" >> "$GITHUB_ENV"
           # printf "TASK_DEFINITION=%s\n" "$TASK_DEFINITION" >> $GITHUB_ENV
           # printf "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
           echo $TASK_DEFINITION
@@ -138,8 +140,8 @@ jobs:
 
       - name: Fetch Latest Task Definition
         run: |
-          TASK_DEFINITION=$(echo "$TASK_DEFINITION" | base64 --decode)
-          echo "Decoded TASK_DEFINITION: $TASK_DEFINITION"
+          # TASK_DEFINITION=$(echo "$TASK_DEFINITION" | base64 --decode)
+          # echo "Decoded TASK_DEFINITION: $TASK_DEFINITION"
           LATEST_TASK_DEF=$(aws ecs describe-task-definition --task-definition ${TASK_DEFINITION} | jq -r '.taskDefinition.taskDefinitionArn')
           echo "LATEST_TASK_DEF=$LATEST_TASK_DEF" >> $GITHUB_ENV
 
