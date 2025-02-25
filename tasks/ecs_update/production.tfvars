@@ -1,4 +1,3 @@
-// trial
 cluster_name      = "nginx"
 image_name        = "nginx:alpine"
 desired_task      = 3
