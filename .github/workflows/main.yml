@@ -126,8 +126,10 @@ jobs:
           terraform apply --var-file production.tfvars --auto-approve
           # echo "CLUSTER_NAME=$(terraform output -raw cluster_name)" >> "$GITHUB_ENV"
           # echo "SERVICE_NAME=$(terraform output -raw service_name)" >> "$GITHUB_ENV"
-          printf "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
-          cat temp
+          TASK_DEFINITION=$(terraform output -raw task_definition | sed 's|.*/||' | sed 's|::.*||')
+          printf "TASK_DEFINITION=$TASK_DEFINITION" | tee -a $GITHUB_ENV
+          # printf "TASK_DEFINITION=$(terraform output -raw task_definition)" > temp
+          echo $TASK_DEFINITION
           # echo "TASK_DEFINITION=$(terraform output -raw task_definition | grep -oP '(?<=task-definition/)[^"]+')" >> "$GITHUB_ENV"
         continue-on-error: true
         working-directory: tasks/ecs_update/
