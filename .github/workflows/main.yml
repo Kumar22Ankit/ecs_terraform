@@ -138,6 +138,7 @@ jobs:
 
       - name: Fetch Latest Task Definition
         run: |
+          TASK_DEFINITION=$(echo "$TASK_DEFINITION" | base64 --decode)
           LATEST_TASK_DEF=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} | jq -r '.taskDefinition.taskDefinitionArn')
           echo "LATEST_TASK_DEF=$LATEST_TASK_DEF" >> $GITHUB_ENV
 
